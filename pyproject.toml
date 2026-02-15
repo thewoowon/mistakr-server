@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "movieandme-server"
+version = "0.1.0"
+description = "MovieAndMe Backend API Server"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.6"
+uvicorn = "^0.32.1"
+pydantic-settings = "^2.6.1"
+sqlalchemy = "^2.0.36"
+python-decouple = "^3.8"
+alembic = "^1.14.0"
+aiosqlite = "^0.20.0"
+requests = "^2.32.3"
+pyjwt = "^2.10.1"
+python-multipart = "^0.0.20"
+python-dotenv = "^1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
