@@ -1,156 +1,119 @@
-# 🚀 Quick Start Guide
+# Quick Start Guide
 
-## 📦 원클릭 설치 (권장)
-
-```bash
-cd /Users/aepeul/dev/server/MovieAndMe-server
-./setup.sh
-```
-
-이 스크립트가 자동으로:
-- ✅ Conda 환경 생성 (movieandme)
-- ✅ Python 패키지 설치
-- ✅ .env 파일 생성
-- ✅ 데이터베이스 초기화
-
----
-
-## ⚙️ 환경 설정
-
-### 1. `.env` 파일 수정
+## 1. 의존성 설치
 
 ```bash
-nano .env
+cd /Users/aepeul/dev/server/mistakr-server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-**필수 설정:**
+## 2. 환경 변수 설정
+
+`.env` 파일 수정:
+
 ```env
-JWT_SECRET_KEY=your-super-secret-key-here-change-this
+# 필수
+JWT_SECRET_KEY=your-secret-key-here
 JWT_ALGORITHM=HS256
+ANTHROPIC_API_KEY=sk-ant-your-api-key
 
-GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+# OAuth (프론트 연동 시)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-> 💡 **Tip**: JWT_SECRET_KEY는 최소 32자 이상의 랜덤 문자열을 사용하세요.
-
----
-
-## 🏃 서버 실행
+## 3. 서버 실행
 
 ```bash
-./start.sh
-```
-
-서버가 실행되면:
-- 🌐 API: http://localhost:8000
-- 📚 Docs: http://localhost:8000/api/v1/docs
-- 📖 ReDoc: http://localhost:8000/api/v1/redoc
-
----
-
-## 🛠️ 수동 설치 (선택)
-
-### 1. Conda 환경 생성
-```bash
-conda create -n movieandme python=3.11 -y
-conda activate movieandme
-```
-
-### 2. 패키지 설치
-```bash
-pip install fastapi uvicorn pydantic-settings sqlalchemy python-decouple \
-    alembic aiosqlite requests pyjwt python-multipart python-dotenv
-```
-
-### 3. 환경 변수 설정
-```bash
-cp .env.example .env
-# .env 파일 수정
-```
-
-### 4. 데이터베이스 초기화
-```bash
-./init_db.sh
-# 또는
-python -c "from app.db.session import sync_engine; from app.db.base import Base; from app.models import User, Token; Base.metadata.create_all(bind=sync_engine)"
-```
-
-### 5. 서버 실행
-```bash
-conda activate movieandme
+source venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
----
+서버 시작 시 DB 테이블 12개가 자동 생성된다.
 
-## 🔍 테스트
+- API: http://localhost:8000
+- Swagger Docs: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-### API 동작 확인
-```bash
-curl http://localhost:8000/api/v1/docs
-```
+## 4. 동작 확인
 
-### Google 로그인 테스트
-1. React Native 앱에서 Google 로그인 시도
-2. 서버 터미널에서 로그 확인
-3. http://localhost:8000/api/v1/docs 에서 직접 테스트 가능
-
----
-
-## 🐛 문제 해결
-
-### ❌ 에러: "cannot import name 'Base'"
-**해결:** 이미 수정됨! 최신 코드 사용
-
-### ❌ 에러: "No module named 'fastapi'"
-**해결:**
-```bash
-conda activate movieandme
-pip install fastapi uvicorn
-```
-
-### ❌ 에러: "Database is locked"
-**해결:**
-```bash
-rm app/db/movieandme.db
-./init_db.sh
-```
-
-### ❌ CORS 에러
-**해결:** [main.py:25-35](app/main.py#L25-L35)에서 `allow_origins`에 프론트엔드 URL 추가
-
----
-
-## 📝 유용한 명령어
+### 케이스 목록 조회 (인증 불필요)
 
 ```bash
-# DB 초기화
-./init_db.sh
-
-# 서버 시작
-./start.sh
-
-# Conda 환경 활성화
-conda activate movieandme
-
-# Conda 환경 비활성화
-conda deactivate
-
-# 패키지 목록 확인
-pip list
-
-# 서버 로그 실시간 확인
-tail -f logs/server.log  # (로깅 설정 후)
+curl http://localhost:8000/api/v1/cases
 ```
 
----
+### 아이디어 생성 (인증 필요)
 
-## 🎯 다음 단계
+```bash
+curl -X POST http://localhost:8000/api/v1/ideas \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "FreshMeal",
+    "industry": "food",
+    "description": "신선 식재료 구독 서비스",
+    "stage": "seed",
+    "revenue_model": "subscription",
+    "team_size": 4,
+    "has_technical_cofounder": "yes",
+    "monthly_burn": 15000,
+    "runway_months": 8,
+    "has_revenue": "no"
+  }'
+```
 
-1. ✅ 서버 실행 확인
-2. 🔐 Google OAuth 설정
-3. 📱 React Native 앱에서 테스트
-4. 🎬 영화 API 기능 추가
+### AI 컨설팅 시작 (SSE 스트리밍)
 
-더 자세한 내용은 [README.md](README.md) 참조!
+```bash
+curl -N -X POST http://localhost:8000/api/v1/consulting/sessions \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"idea_id": 1}'
+```
+
+4단계로 SSE 이벤트가 스트리밍된다:
+1. `matching` - 유사 케이스 매칭
+2. `analyzing` - Claude AI 분석 (텍스트 청크 전송)
+3. `generating` - 결과 파싱 및 저장
+4. `completed` - 전체 결과 전송
+
+### 체크리스트 토글
+
+```bash
+curl -X PATCH http://localhost:8000/api/v1/consulting/sessions/1/checklist/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"is_completed": true}'
+```
+
+## 5. DB 초기화 (필요 시)
+
+```bash
+RESET_DB=true uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+모든 테이블을 삭제 후 재생성한다.
+
+## 문제 해결
+
+### CORS 에러
+[app/main.py](app/main.py)의 `allow_origins`에 프론트엔드 URL을 추가한다.
+
+### Claude API 에러
+`.env`의 `ANTHROPIC_API_KEY`가 올바른지 확인한다. 동기식 엔드포인트(`/consulting/sessions/sync`)로 먼저 테스트하면 디버그가 쉽다.
+
+### Database locked
+```bash
+rm app/db/mistakr.db
+# 서버 재시작하면 자동 재생성
+```
+
+## 다음 단계
+
+1. Anthropic API 키 발급 및 설정
+2. 실패 케이스 데이터 입력 (DB seed)
+3. Railway 배포
+4. 프론트엔드 mock 데이터 → 실제 API 전환

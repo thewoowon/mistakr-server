@@ -11,12 +11,13 @@ Phase 2에서는 규칙 기반으로 시작, 데이터 50개 이상 시 pgvector
 - 기타 보너스: +0.15
 """
 
+from typing import List, Tuple
 from app.models.case import Case
 from app.models.idea import StartupIdea
 from sqlalchemy.orm import Session
 
 
-def calculate_similarity(idea: StartupIdea, case: Case) -> tuple[float, list[str]]:
+def calculate_similarity(idea: StartupIdea, case: Case) -> Tuple[float, List[str]]:
     """아이디어와 케이스 간 유사도 계산. (score, match_reasons) 반환."""
     score = 0.0
     reasons = []
@@ -79,7 +80,7 @@ def find_matching_cases(
     idea: StartupIdea,
     top_k: int = 5,
     min_similarity: float = 0.15,
-) -> list[dict]:
+) -> List[dict]:
     """아이디어에 가장 유사한 케이스 top_k개 반환."""
     cases = db.query(Case).all()
 

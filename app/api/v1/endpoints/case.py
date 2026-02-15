@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -24,7 +25,7 @@ def list_cases(
 @router.get("/search")
 def search(
     q: str = Query("", min_length=0),
-    industry: str | None = Query(None),
+    industry: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     """케이스 검색 (인증 불필요)"""

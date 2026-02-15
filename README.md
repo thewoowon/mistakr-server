@@ -1,239 +1,176 @@
-# MovieAndMe Backend Server
+# Mistakr Backend Server
 
-FastAPI backend server for the MovieAndMe React Native mobile application.
+스타트업 실패 사례 분석 + AI 컨설팅 플랫폼 **Mistakr**의 FastAPI 백엔드 서버.
 
 ## Features
 
-- 🔐 Google OAuth authentication
-- 🎫 JWT-based access & refresh token management
-- 👤 User profile management
-- 📱 Mobile-optimized API responses
+- **AI 실패 컨설팅**: Claude Sonnet으로 스타트업 아이디어 리스크 분석
+- **SSE 스트리밍**: 실시간 분석 진행 상황 전송 (matching → analyzing → generating → completed)
+- **케이스 매칭 엔진**: 규칙 기반 유사 실패 사례 매칭 (industry, stage, team, revenue model 가중치)
+- **리스크 점수**: 7개 카테고리 (PMF, Financial, Team, Market, Timing, Competition, Execution) 0-100 점수
+- **액션 체크리스트**: AI 생성 + 사용자 토글 가능
+- **타임라인 예측**: 향후 18개월 리스크 이벤트 예측
+- Google/Apple OAuth + JWT 인증
+- SQLite + SQLAlchemy
 
 ## Tech Stack
 
 - **Framework**: FastAPI
-- **Database**: SQLite with SQLAlchemy (async)
-- **Authentication**: JWT + Google OAuth
-- **Python**: 3.11+
+- **Database**: SQLite + SQLAlchemy (async/sync)
+- **AI**: Anthropic Claude API (Sonnet 4.5)
+- **Authentication**: JWT (access 30min / refresh 7days) + Google/Apple OAuth
+- **Streaming**: SSE (Server-Sent Events)
 
-## Setup
+## Project Structure
 
-### 1. Install Dependencies
-
-```bash
-poetry install
 ```
-
-Or with pip:
-```bash
-pip install -r requirements.txt
+mistakr-server/
+├── app/
+│   ├── api/v1/endpoints/
+│   │   ├── auth.py              # Google/Apple OAuth + JWT
+│   │   ├── user.py              # 사용자 CRUD
+│   │   ├── idea.py              # 스타트업 아이디어 CRUD
+│   │   ├── consulting.py        # AI 컨설팅 세션 (SSE 스트리밍)
+│   │   └── case.py              # 실패 케이스 목록/검색/상세
+│   ├── models/
+│   │   ├── user.py, token.py    # 인증 모델
+│   │   ├── case.py              # Case + FailureCause, WarningSign, Counterfactual, Competitor, MarketCondition
+│   │   ├── idea.py              # StartupIdea
+│   │   └── consulting.py        # ConsultingSession, ChecklistItem
+│   ├── schemas/                 # Pydantic request/response 모델
+│   ├── services/
+│   │   ├── auth_service.py      # OAuth 인증 로직
+│   │   ├── user_service.py      # 사용자 비즈니스 로직
+│   │   ├── idea_service.py      # 아이디어 CRUD
+│   │   ├── case_service.py      # 케이스 조회
+│   │   ├── matching_service.py  # 규칙 기반 매칭 엔진
+│   │   ├── claude_service.py    # Claude API 통합
+│   │   └── consulting_service.py # SSE 스트리밍 분석 플로우
+│   ├── core/
+│   │   ├── config.py            # Pydantic Settings
+│   │   └── security.py          # JWT 토큰 처리
+│   ├── db/
+│   │   ├── base.py              # SQLAlchemy Base (auto tablename, timestamps)
+│   │   └── session.py           # DB 엔진 및 세션
+│   ├── dependencies.py          # FastAPI DI (get_db)
+│   └── main.py                  # FastAPI app (lifespan, CORS, router)
+├── .env                         # 환경 변수 (git 제외)
+├── .env.example                 # 환경 변수 템플릿
+├── requirements.txt             # Python 패키지
+└── settings.py                  # 전역 상수
 ```
-
-### 2. Environment Configuration
-
-Copy `.env.example` to `.env` and fill in your credentials:
-
-```bash
-cp .env.example .env
-```
-
-Required environment variables:
-- `JWT_SECRET_KEY`: Your secret key for JWT token generation
-- `JWT_ALGORITHM`: HS256 (recommended)
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-
-### 3. Initialize Database
-
-```bash
-# Create database tables
-python -c "from app.db.session import sync_engine; from app.db.base import Base; from app.models import User, Token; Base.metadata.create_all(bind=sync_engine)"
-```
-
-### 4. Run Server
-
-```bash
-# Development mode with auto-reload
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API will be available at `http://localhost:8000`
-
-API documentation available at:
-- Swagger UI: `http://localhost:8000/api/v1/docs`
-- ReDoc: `http://localhost:8000/api/v1/redoc`
 
 ## API Endpoints
 
 ### Authentication
 
-#### Google Login
-```http
-POST /api/v1/auth/google
-Content-Type: application/json
-
-{
-  "id_token": "google_id_token_here",
-  "is_selected": true
-}
-```
-
-**Response Headers:**
-- `Authorization: Bearer {access_token}`
-- `RefreshToken: RefreshToken {refresh_token}`
-
-**Response Body:**
-```json
-{
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "name": "John Doe",
-    "profile_pic": "https://...",
-    "provider": "google"
-  }
-}
-```
-
-#### Refresh Token
-```http
-POST /api/v1/auth/token/reissue
-Content-Type: application/json
-
-{
-  "refreshToken": "your_refresh_token"
-}
-```
-
-**Response Headers:**
-- `Authorization: Bearer {new_access_token}`
-- `RefreshToken: RefreshToken {new_refresh_token}`
-
-#### Logout
-```http
-POST /api/v1/auth/logout
-Authorization: Bearer {access_token}
-```
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/v1/auth/google` | - | Google 로그인 |
+| POST | `/api/v1/auth/apple` | - | Apple 로그인 |
+| POST | `/api/v1/auth/token/reissue` | - | 토큰 갱신 |
+| POST | `/api/v1/auth/logout` | Bearer | 로그아웃 |
 
 ### User
 
-#### Get Current User
-```http
-GET /api/v1/users/me
-Authorization: Bearer {access_token}
-```
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/users/me` | Bearer | 내 정보 조회 |
+| DELETE | `/api/v1/users/me` | Bearer | 계정 삭제 |
 
-**Response:**
-```json
-{
-  "id": 1,
-  "email": "user@example.com",
-  "name": "John Doe",
-  "profile_pic": "https://...",
-  "created_at": "2025-01-01T00:00:00",
-  "updated_at": "2025-01-01T00:00:00",
-  "provider": "google"
-}
-```
+### Startup Ideas
 
-## Project Structure
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/v1/ideas` | Bearer | 아이디어 생성 |
+| GET | `/api/v1/ideas` | Bearer | 내 아이디어 목록 |
+| GET | `/api/v1/ideas/{id}` | Bearer | 아이디어 상세 |
+| PUT | `/api/v1/ideas/{id}` | Bearer | 수정 |
+| DELETE | `/api/v1/ideas/{id}` | Bearer | 삭제 |
 
-```
-MovieAndMe-server/
-├── app/
-│   ├── api/
-│   │   └── v1/
-│   │       ├── endpoints/
-│   │       │   ├── auth.py       # Authentication endpoints
-│   │       │   └── user.py       # User endpoints
-│   │       └── api.py            # API router aggregation
-│   ├── core/
-│   │   ├── config.py             # Configuration settings
-│   │   └── security.py           # JWT token handling
-│   ├── db/
-│   │   ├── base.py               # SQLAlchemy base
-│   │   └── session.py            # Database session management
-│   ├── models/
-│   │   ├── user.py               # User model
-│   │   └── token.py              # Token model
-│   ├── schemas/
-│   │   └── user.py               # Pydantic schemas
-│   ├── services/
-│   │   ├── auth_service.py       # Authentication business logic
-│   │   └── user_service.py       # User business logic
-│   ├── dependencies.py           # FastAPI dependencies
-│   └── main.py                   # FastAPI app initialization
-├── .env.example                  # Environment variables template
-├── pyproject.toml                # Poetry dependencies
-└── settings.py                   # Global settings
+### AI Consulting
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/v1/consulting/sessions` | Bearer | 새 컨설팅 (SSE 스트리밍) |
+| POST | `/api/v1/consulting/sessions/sync` | Bearer | 동기식 컨설팅 (테스트용) |
+| GET | `/api/v1/consulting/sessions` | Bearer | 내 세션 목록 |
+| GET | `/api/v1/consulting/sessions/{id}` | Bearer | 세션 상세 |
+| PATCH | `/api/v1/consulting/sessions/{id}/checklist/{item_id}` | Bearer | 체크리스트 토글 |
+
+### Cases (실패 사례)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/cases` | - | 전체 케이스 목록 |
+| GET | `/api/v1/cases/search?q=&industry=` | - | 검색 |
+| GET | `/api/v1/cases/{id}` | - | 케이스 상세 (enriched data 포함) |
+
+## SSE Streaming Protocol
+
+`POST /api/v1/consulting/sessions` 요청 시 SSE 스트리밍으로 응답:
 
 ```
+Phase 1: matching
+data: {"phase": "matching", "data": {"progress": 0}}
+data: {"phase": "matching", "data": {"progress": 100, "matched_cases": [...]}}
+
+Phase 2: analyzing (Claude API 스트리밍)
+data: {"phase": "analyzing", "data": {"progress": 0}}
+data: {"phase": "analyzing", "chunk": "리스크 분석 텍스트..."}
+
+Phase 3: generating
+data: {"phase": "generating", "data": {"progress": 50}}
+data: {"phase": "generating", "data": {"progress": 100}}
+
+Phase 4: completed
+data: {"phase": "completed", "data": {"session_id": 1, "risk_scores": {...}, ...}}
+```
+
+## Matching Algorithm
+
+규칙 기반 가중치 (Phase 2, 데이터 50개 이상 시 pgvector 전환 예정):
+
+| Factor | Weight | Condition |
+|--------|--------|-----------|
+| Industry | +0.30 | 동일 산업 |
+| Failure Type | +0.20 each (max 0.40) | 리스크 패턴 일치 |
+| Stage | +0.15 | 동일 단계 |
+| Team Size | +0.10 | 유사 규모 (ratio > 0.5) |
+| Revenue Model | +0.10 | 동일 수익 모델 |
+
+## Database Schema
+
+12개 테이블:
+
+- `user` - 사용자
+- `token` - Refresh token
+- `case` - 실패 사례 (정량 데이터, 타임라인, 노드 그래프 포함)
+- `failure_cause` - 실패 원인 (severity: critical/major/contributing)
+- `warning_sign` - 경고 신호 (6개 카테고리)
+- `counterfactual` - 반사실적 분석 ("만약 ~했다면")
+- `competitor` - 경쟁사 정보
+- `market_condition` - 시장 환경 (TAM, 성장률, 규제 강도)
+- `startup_idea` - 사용자 스타트업 아이디어
+- `consulting_session` - AI 컨설팅 세션 (7개 리스크 점수, 매칭 결과, 예측)
+- `checklist_item` - 액션 체크리스트 (priority + 완료 여부)
 
 ## Token Management
 
-### Access Token
-- **Lifespan**: 30 minutes
-- **Usage**: Include in `Authorization: Bearer {token}` header for all authenticated requests
+- **Access Token**: 30분, `Authorization: Bearer {token}` 헤더
+- **Refresh Token**: 7일, DB 저장, rotation 방식 (갱신 시 새 토큰 발급)
 - **Payload**: `{"sub": "user@email.com", "user_id": 1, "exp": timestamp}`
-
-### Refresh Token
-- **Lifespan**: 7 days
-- **Storage**: Database with `is_active` flag
-- **Usage**: Send to `/api/v1/auth/token/reissue` to get new access token
-- **Rotation**: New refresh token issued on each refresh
-
-## Error Codes
-
-The API returns structured error responses compatible with the React Native app:
-
-### JWT_VERIFY_EXPIRED
-```json
-{
-  "code": "JWT_VERIFY_EXPIRED",
-  "message": "인증정보가 만료 됐습니다.",
-  "name": "TokenExpiredException"
-}
-```
-
-### JWT_VALIDATE_ERROR
-```json
-{
-  "code": "JWT_VALIDATE_ERROR",
-  "message": "인증정보가 유효하지 않습니다.",
-  "name": "TokenValidationException"
-}
-```
-
-## Development
-
-### Running Tests
-```bash
-pytest
-```
-
-### Code Formatting
-```bash
-black app/
-```
-
-### Linting
-```bash
-flake8 app/
-```
 
 ## Deployment
 
-### Docker
-```bash
-docker build -t movieandme-server .
-docker run -p 8000:8000 movieandme-server
-```
+Railway에 배포 (기존 인프라 활용):
 
-### Environment
-Make sure to set production-ready values in `.env`:
-- Use a strong `JWT_SECRET_KEY`
-- Set `DEBUG=False`
-- Configure proper CORS origins in `app/main.py`
+```bash
+# 환경 변수 설정
+ANTHROPIC_API_KEY=sk-ant-...
+JWT_SECRET_KEY=your-secret-key
+DATABASE_URL=sqlite+aiosqlite:///./app/db/mistakr.db
+```
 
 ## License
 

@@ -1,16 +1,17 @@
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.case import Case, FailureCause, WarningSign, Counterfactual, Competitor, MarketCondition
 
 
-def get_all_cases(db: Session, skip: int = 0, limit: int = 50) -> list[Case]:
+def get_all_cases(db: Session, skip: int = 0, limit: int = 50) -> List[Case]:
     return db.query(Case).order_by(Case.created_at.desc()).offset(skip).limit(limit).all()
 
 
-def get_case_by_id(db: Session, case_id: int) -> Case | None:
+def get_case_by_id(db: Session, case_id: int) -> Optional[Case]:
     return db.query(Case).filter(Case.id == case_id).first()
 
 
-def search_cases(db: Session, query: str, industry: str | None = None) -> list[Case]:
+def search_cases(db: Session, query: str, industry: Optional[str] = None) -> List[Case]:
     q = db.query(Case)
     if query:
         q = q.filter(Case.company_name.ilike(f"%{query}%"))
@@ -19,7 +20,7 @@ def search_cases(db: Session, query: str, industry: str | None = None) -> list[C
     return q.order_by(Case.created_at.desc()).all()
 
 
-def get_case_detail(db: Session, case_id: int) -> dict | None:
+def get_case_detail(db: Session, case_id: int) -> Optional[dict]:
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         return None

@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.idea import StartupIdea
@@ -12,7 +13,7 @@ def create_idea(db: Session, user_id: int, idea: IdeaCreate) -> StartupIdea:
     return db_idea
 
 
-def get_ideas_by_user(db: Session, user_id: int) -> list[StartupIdea]:
+def get_ideas_by_user(db: Session, user_id: int) -> List[StartupIdea]:
     return db.query(StartupIdea).filter(StartupIdea.user_id == user_id).order_by(StartupIdea.created_at.desc()).all()
 
 

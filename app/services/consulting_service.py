@@ -4,6 +4,7 @@
 """
 
 import json
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.consulting import ConsultingSession, ChecklistItem
@@ -228,7 +229,7 @@ def run_analysis_sse(db: Session, session_id: int, user_id: int):
     yield f"data: {json.dumps({'phase': 'completed', 'data': final_data})}\n\n"
 
 
-def get_user_sessions(db: Session, user_id: int) -> list[dict]:
+def get_user_sessions(db: Session, user_id: int) -> List[dict]:
     """사용자의 컨설팅 세션 목록 조회."""
     sessions = db.query(ConsultingSession).filter(
         ConsultingSession.user_id == user_id,
@@ -251,7 +252,7 @@ def get_user_sessions(db: Session, user_id: int) -> list[dict]:
     return result
 
 
-def get_session_detail(db: Session, session_id: int, user_id: int) -> dict | None:
+def get_session_detail(db: Session, session_id: int, user_id: int) -> Optional[dict]:
     """세션 상세 조회."""
     session = db.query(ConsultingSession).filter(
         ConsultingSession.id == session_id,
