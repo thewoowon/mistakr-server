@@ -18,10 +18,6 @@ pip install -r requirements.txt
 JWT_SECRET_KEY=your-secret-key-here
 JWT_ALGORITHM=HS256
 ANTHROPIC_API_KEY=sk-ant-your-api-key
-
-# OAuth (프론트 연동 시)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
 ## 3. 서버 실행

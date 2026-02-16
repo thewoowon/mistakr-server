@@ -24,7 +24,6 @@ from cryptography.hazmat.primitives import serialization
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
 
 
