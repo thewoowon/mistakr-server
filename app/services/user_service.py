@@ -2,6 +2,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.token import Token
+from app.models.idea import StartupIdea
+from app.models.consulting import ConsultingSession
 from app.schemas.user import UserCreate
 
 
@@ -39,14 +41,20 @@ def check_email_exists(db: Session, email: str) -> bool:
 
 def delete_user(db: Session, user_id: int):
     """
-    Delete user and all related data (tokens, etc.)
+    Delete user and all related data
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Delete all user's tokens
-    db.query(Token).filter(Token.user_id == user_id).delete()
+    # Delete consulting sessions
+    db.query(ConsultingSession).filter(ConsultingSession.user_id == user_id).delete(synchronize_session=False)
+
+    # Delete startup ideas
+    db.query(StartupIdea).filter(StartupIdea.user_id == user_id).delete(synchronize_session=False)
+
+    # Delete tokens
+    db.query(Token).filter(Token.user_id == user_id).delete(synchronize_session=False)
 
     # Delete user
     db.delete(user)

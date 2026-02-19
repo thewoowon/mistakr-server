@@ -19,6 +19,6 @@ class User(Base):
     provider_id = Column(String, nullable=True)  # OAuth provider's user ID
 
     # 관계 설정
-    tokens = relationship("Token", back_populates="user")
-    ideas = relationship("StartupIdea", back_populates="user")
-    consulting_sessions = relationship("ConsultingSession", back_populates="user")
+    tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
+    ideas = relationship("StartupIdea", back_populates="user", cascade="all, delete-orphan")
+    consulting_sessions = relationship("ConsultingSession", back_populates="user", cascade="all, delete-orphan")
